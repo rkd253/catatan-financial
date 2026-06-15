@@ -6,17 +6,15 @@ let state = {
     loans: []
 };
 
-// Available categories based on transaction type
 const categories = {
-    masuk: ['Gaji', 'Investasi', 'Bisnis', 'Hadiah/Bonus', 'Lainnya'],
+    masuk: ['Modal / Saldo Awal', 'Tambahan Modal', 'Gaji', 'Investasi', 'Bisnis', 'Hadiah/Bonus', 'Lainnya'],
     keluar: ['Makanan', 'Transportasi', 'Hiburan', 'Belanja', 'Kebutuhan Rumah', 'Investasi', 'Tagihan', 'Lainnya']
 };
 
-// Chart instances
+let activeCurrency = 'IDR';
 let cashflowChart = null;
 let categoryChart = null;
 
-// Credentials Configuration
 const OWNER_USERNAME = "pakdol";
 const OWNER_PASSWORD = "asd123";
 
@@ -31,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
     populateFilterCategories();
 });
 
-// Authentication System
 function checkAuthStatus() {
     const isLogged = sessionStorage.getItem('heist_authorized');
     const loginContainer = document.getElementById('login-container');
@@ -58,13 +55,10 @@ function handleLogin(e) {
         if (errorMsg) errorMsg.style.display = 'none';
         sessionStorage.setItem('heist_authorized', 'true');
         checkAuthStatus();
-        
-        // Reset login form
         document.getElementById('login-form-element').reset();
     } else {
         if (errorMsg) {
             errorMsg.style.display = 'flex';
-            // Simple shake retrigger if already displaying
             errorMsg.style.animation = 'none';
             setTimeout(() => {
                 errorMsg.style.animation = 'shakeError 0.4s ease-in-out';
@@ -80,18 +74,18 @@ function handleLogout() {
     }
 }
 
-// Load data
 function loadDataFromLocalStorage() {
+    // Force-clear old legacy dummy data from previous versions once
+    if (!localStorage.getItem('fina_cleared_v2')) {
+        localStorage.clear();
+        localStorage.setItem('fina_cleared_v2', 'true');
+    }
+
     const savedTransactions = localStorage.getItem('fina_transactions');
     const savedLoans = localStorage.getItem('fina_loans');
     
     if (savedTransactions) state.transactions = JSON.parse(savedTransactions);
     if (savedLoans) state.loans = JSON.parse(savedLoans);
-
-    // If empty, generate some initial dummy data for better UX
-    if (state.transactions.length === 0 && state.loans.length === 0) {
-        generateDummyData();
-    }
 }
 
 function saveDataToLocalStorage() {
@@ -99,55 +93,10 @@ function saveDataToLocalStorage() {
     localStorage.setItem('fina_loans', JSON.stringify(state.loans));
 }
 
-// Dummy data setup
-function generateDummyData() {
-    const today = new Date();
-    const formattedDate = (offsetDays) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() - offsetDays);
-        return d.toISOString().split('T')[0];
-    };
-
-    state.transactions = [
-        { id: 'tx-1', type: 'masuk', category: 'Gaji', amount: 5000000, date: formattedDate(10), note: 'Gaji Pokok Utama' },
-        { id: 'tx-2', type: 'keluar', category: 'Kebutuhan Rumah', amount: 150000, date: formattedDate(5), note: 'Pembelian Stok Logistik Kantor' },
-        { id: 'tx-3', type: 'keluar', category: 'Hiburan', amount: 350000, date: formattedDate(4), note: 'Makan Malam Bisnis (Client)' },
-        { id: 'tx-4', type: 'keluar', category: 'Lainnya', amount: 100000, date: formattedDate(2), note: 'Tagihan Air & Keamanan' },
-        { id: 'tx-5', type: 'masuk', category: 'Bisnis', amount: 1200000, date: formattedDate(1), note: 'Keuntungan Penjualan Produk' }
-    ];
-
-    state.loans = [
-        { 
-            id: 'loan-1', 
-            type: 'piutang', 
-            name: 'Andi Pratama', 
-            amount: 500000, 
-            date: formattedDate(8), 
-            dueDate: formattedDate(-10), 
-            repayments: [
-                { id: 'rep-1', amount: 200000, date: formattedDate(3) }
-            ], 
-            note: 'Modal tambahan jualan sepatu' 
-        },
-        { 
-            id: 'loan-2', 
-            type: 'hutang', 
-            name: 'Koperasi Bersama', 
-            amount: 2000000, 
-            date: formattedDate(15), 
-            dueDate: formattedDate(-60), 
-            repayments: [], 
-            note: 'Pinjaman lunak inventaris laptop' 
-        }
-    ];
-    saveDataToLocalStorage();
-}
-
 /* ==========================================
    NAVIGATION
    ========================================== */
 function setupNavigation() {
-    // Desktop Nav
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
@@ -157,7 +106,6 @@ function setupNavigation() {
         });
     });
 
-    // Mobile Bottom Nav
     const bottomNavItems = document.querySelectorAll('.bottom-nav-item');
     bottomNavItems.forEach(item => {
         item.addEventListener('click', (e) => {
@@ -171,10 +119,8 @@ function setupNavigation() {
 function switchSection(sectionId) {
     const sections = document.querySelectorAll('.content-section');
     sections.forEach(sec => sec.classList.remove('active'));
-    
     document.getElementById(sectionId).classList.add('active');
     
-    // Highlight Desktop sidebar
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
         if (item.getAttribute('data-target') === sectionId) {
@@ -184,7 +130,6 @@ function switchSection(sectionId) {
         }
     });
 
-    // Highlight Mobile bottom bar
     const bottomNavItems = document.querySelectorAll('.bottom-nav-item');
     bottomNavItems.forEach(item => {
         if (item.getAttribute('data-target') === sectionId) {
@@ -194,7 +139,6 @@ function switchSection(sectionId) {
         }
     });
 
-    // Refresh charts if we return to dashboard
     if (sectionId === 'dashboard-section') {
         renderCharts();
     } else if (sectionId === 'transactions-section') {
@@ -236,7 +180,6 @@ function setupDefaultDates() {
     if (repayDate) repayDate.value = todayStr;
 }
 
-// Automatically update categories inside the form
 function updateCategoryOptions() {
     const typeSelect = document.getElementById('tx-type');
     const catSelect = document.getElementById('tx-category');
@@ -258,9 +201,7 @@ function populateFilterCategories() {
     const filterCat = document.getElementById('filter-category');
     if (!filterCat) return;
     
-    // Combine unique categories from income and expenses
     const allCats = [...new Set([...categories.masuk, ...categories.keluar])];
-    
     filterCat.innerHTML = '<option value="all">Semua Kategori</option>';
     allCats.forEach(cat => {
         const opt = document.createElement('option');
@@ -270,97 +211,118 @@ function populateFilterCategories() {
     });
 }
 
-/* ==========================================
-   FINANCIAL CALCULATIONS & UI UPDATES
-   ========================================== */
-// Dynamic projection calculation in the form
-function calculateLoanProjection() {
-    const amountInput = document.getElementById('loan-amount');
-    const interestSelect = document.getElementById('loan-interest');
-    const projectionText = document.getElementById('loan-projection-text');
+// Helper function to format input values during typing
+function formatInputCurrency(input) {
+    let cursorPosition = input.selectionStart;
+    let originalLength = input.value.length;
+    
+    let cleanVal = input.value.replace(/\D/g, "");
+    if (!cleanVal) {
+        input.value = "";
+        return;
+    }
 
-    if (!amountInput || !interestSelect || !projectionText) return;
-
-    const amount = parseFloat(amountInput.value) || 0;
-    const interestRate = parseFloat(interestSelect.value) / 100;
-    const interestAmount = amount * interestRate;
-    const total = amount + interestAmount;
-
-    projectionText.textContent = formatRupiah(total) + ` (Pokok: ${formatRupiah(amount)} + Bunga: ${formatRupiah(interestAmount)})`;
+    let numberVal = parseInt(cleanVal, 10);
+    let formatted = new Intl.NumberFormat('id-ID').format(numberVal);
+    input.value = formatted;
+    
+    let newLength = formatted.length;
+    input.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
 }
 
-function calculateFinancials() {
+// Convert "1.000.000" back to float
+function parseFormattedNumber(str) {
+    if (!str) return 0;
+    let clean = String(str).replace(/\D/g, "");
+    return parseFloat(clean) || 0;
+}
+
+/* ==========================================
+   FINANCIAL CALCULATIONS
+   ========================================== */
+function formatCurrency(number, currencyCode) {
+    if (currencyCode === 'IDR') {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
+    } else if (currencyCode === 'USD') {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(number);
+    } else if (currencyCode === 'KHR') {
+        return '៛' + new Intl.NumberFormat('id-ID').format(number);
+    } else if (currencyCode === 'THB') {
+        return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(number);
+    }
+    return number;
+}
+
+function calculateFinancials(currencyCode) {
     let incomeSum = 0;
     let expenseSum = 0;
     
-    // Sum standard transactions
     state.transactions.forEach(t => {
-        if (t.type === 'masuk') incomeSum += t.amount;
-        else if (t.type === 'keluar') expenseSum += t.amount;
+        const tCurr = t.currency || 'IDR';
+        if (tCurr === currencyCode) {
+            if (t.type === 'masuk') incomeSum += t.amount;
+            else if (t.type === 'keluar') expenseSum += t.amount;
+        }
     });
 
-    // Sum loan amounts & repayment amounts
     let activeLoans = 0;
-    
     state.loans.forEach(loan => {
-        const interestRate = loan.interestRate !== undefined ? loan.interestRate : 20; // Default 20%
-        const loanTotal = loan.amount + (loan.amount * (interestRate / 100));
-        
-        const totalRepaid = loan.repayments.reduce((sum, r) => sum + r.amount, 0);
-        const remaining = loanTotal - totalRepaid;
-        
-        if (remaining > 0) {
-            activeLoans += remaining;
-        }
-
-        // Add repayments into cashflow calculation
-        loan.repayments.forEach(rep => {
-            if (loan.type === 'piutang') {
-                // We loaned money, so receiving repayment is Money In
-                incomeSum += rep.amount;
-            } else if (loan.type === 'hutang') {
-                // We borrowed money, so repaying is Money Out
-                expenseSum += rep.amount;
+        const loanCurr = loan.currency || 'IDR';
+        if (loanCurr === currencyCode) {
+            const interestRate = loan.interestRate !== undefined ? loan.interestRate : 20;
+            const loanTotal = loan.amount + (loan.amount * (interestRate / 100));
+            const totalRepaid = loan.repayments.reduce((sum, r) => sum + r.amount, 0);
+            const remaining = loanTotal - totalRepaid;
+            
+            if (remaining > 0) {
+                activeLoans += remaining;
             }
-        });
 
-        // Add the initial loan disbursement to the cashflow as well
-        if (loan.type === 'piutang') {
-            // Giving a loan is immediate Money Out (we disburse ONLY the principal amount)
-            expenseSum += loan.amount;
-        } else if (loan.type === 'hutang') {
-            // Receiving a loan is immediate Money In (we receive ONLY the principal amount)
-            incomeSum += loan.amount;
+            loan.repayments.forEach(rep => {
+                if (loan.type === 'piutang') {
+                    incomeSum += rep.amount;
+                } else if (loan.type === 'hutang') {
+                    expenseSum += rep.amount;
+                }
+            });
+
+            if (loan.type === 'piutang') {
+                expenseSum += loan.amount;
+            } else if (loan.type === 'hutang') {
+                incomeSum += loan.amount;
+            }
         }
     });
-
-    const balance = incomeSum - expenseSum;
 
     return {
-        balance,
+        balance: incomeSum - expenseSum,
         income: incomeSum,
         expense: expenseSum,
         loans: activeLoans
     };
 }
 
-function formatRupiah(number) {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        maximumFractionDigits: 0
-    }).format(number);
+function changeDashboardCurrency(currencyCode) {
+    activeCurrency = currencyCode;
+    const buttons = document.querySelectorAll('.currency-tabs-container button');
+    buttons.forEach(btn => btn.classList.remove('active-currency'));
+    
+    document.getElementById(`tab-curr-${currencyCode}`).classList.add('active-currency');
+
+    const labels = document.querySelectorAll('.active-currency-label');
+    labels.forEach(lbl => lbl.textContent = currencyCode);
+
+    updateDashboardUI();
 }
 
 function updateDashboardUI() {
-    const fin = calculateFinancials();
+    const fin = calculateFinancials(activeCurrency);
     
-    document.getElementById('total-balance').textContent = formatRupiah(fin.balance);
-    document.getElementById('total-income').textContent = formatRupiah(fin.income);
-    document.getElementById('total-expense').textContent = formatRupiah(fin.expense);
-    document.getElementById('total-loans').textContent = formatRupiah(fin.loans);
+    document.getElementById('total-balance').textContent = formatCurrency(fin.balance, activeCurrency);
+    document.getElementById('total-income').textContent = formatCurrency(fin.income, activeCurrency);
+    document.getElementById('total-expense').textContent = formatCurrency(fin.expense, activeCurrency);
+    document.getElementById('total-loans').textContent = formatCurrency(fin.loans, activeCurrency);
 
-    // Adjust balance text color (warning if negative)
     const balEl = document.getElementById('total-balance');
     if (fin.balance < 0) {
         balEl.style.color = 'var(--color-danger)';
@@ -373,63 +335,85 @@ function updateDashboardUI() {
     renderCharts();
 }
 
+function calculateLoanProjection() {
+    const amountInput = document.getElementById('loan-amount');
+    const interestSelect = document.getElementById('loan-interest');
+    const currencySelect = document.getElementById('loan-currency');
+    const projectionText = document.getElementById('loan-projection-text');
+
+    if (!amountInput || !interestSelect || !currencySelect || !projectionText) return;
+
+    const amount = parseFormattedNumber(amountInput.value) || 0;
+    const interestRate = parseFloat(interestSelect.value) / 100;
+    const interestAmount = amount * interestRate;
+    const total = amount + interestAmount;
+    const curr = currencySelect.value;
+
+    projectionText.textContent = formatCurrency(total, curr) + ` (Pokok: ${formatCurrency(amount, curr)} + Bunga: ${formatCurrency(interestAmount, curr)})`;
+}
+
 /* ==========================================
-   RENDER RECENT ITEMS (DASHBOARD)
+   RENDER LISTS
    ========================================== */
 function renderRecentTransactions() {
     const listEl = document.getElementById('recent-transactions');
     if (!listEl) return;
 
-    // Combine actual transactions with loan disbursements and repayments for a unified history
     let unifiedHistory = [];
 
     state.transactions.forEach(t => {
-        unifiedHistory.push({
-            id: t.id,
-            title: t.note,
-            subtitle: t.category,
-            amount: t.amount,
-            type: t.type,
-            date: t.date,
-            icon: t.type === 'masuk' ? 'fa-solid fa-arrow-trend-up' : 'fa-solid fa-arrow-trend-down',
-            badgeClass: t.type === 'masuk' ? 'badge-income' : 'badge-expense'
-        });
+        const tCurr = t.currency || 'IDR';
+        if (tCurr === activeCurrency) {
+            unifiedHistory.push({
+                id: t.id,
+                title: t.note,
+                subtitle: t.category,
+                amount: t.amount,
+                type: t.type,
+                date: t.date,
+                currency: tCurr,
+                icon: t.type === 'masuk' ? 'fa-solid fa-arrow-trend-up' : 'fa-solid fa-arrow-trend-down',
+                badgeClass: t.type === 'masuk' ? 'badge-income' : 'badge-expense'
+            });
+        }
     });
 
     state.loans.forEach(l => {
-        // Initial loan event
-        unifiedHistory.push({
-            id: `${l.id}-init`,
-            title: l.type === 'piutang' ? `Meminjamkan ke ${l.name}` : `Pinjam dari ${l.name}`,
-            subtitle: 'Pinjaman Baru',
-            amount: l.amount,
-            type: l.type === 'piutang' ? 'keluar' : 'masuk', // Piutang (giving loan) is cash out, hutang is cash in
-            date: l.date,
-            icon: 'fa-solid fa-handshake',
-            badgeClass: 'badge-pending'
-        });
-
-        // Repayments
-        l.repayments.forEach(r => {
+        const lCurr = l.currency || 'IDR';
+        if (lCurr === activeCurrency) {
             unifiedHistory.push({
-                id: r.id,
-                title: l.type === 'piutang' ? `Cicilan Masuk dari ${l.name}` : `Bayar Cicilan ke ${l.name}`,
-                subtitle: 'Pengembalian Pinjaman',
-                amount: r.amount,
-                type: l.type === 'piutang' ? 'masuk' : 'keluar',
-                date: r.date,
-                icon: 'fa-solid fa-rotate-left',
-                badgeClass: l.type === 'piutang' ? 'badge-income' : 'badge-expense'
+                id: `${l.id}-init`,
+                title: l.type === 'piutang' ? `Memberi Pinjaman ke ${l.name}` : `Pinjam dari ${l.name}`,
+                subtitle: 'Pinjaman Baru',
+                amount: l.amount,
+                type: l.type === 'piutang' ? 'keluar' : 'masuk',
+                date: l.date,
+                currency: lCurr,
+                icon: 'fa-solid fa-handshake',
+                badgeClass: 'badge-pending'
             });
-        });
+
+            l.repayments.forEach(r => {
+                unifiedHistory.push({
+                    id: r.id,
+                    title: l.type === 'piutang' ? `Cicilan Masuk dari ${l.name}` : `Bayar Cicilan ke ${l.name}`,
+                    subtitle: 'Pengembalian Pinjaman',
+                    amount: r.amount,
+                    type: l.type === 'piutang' ? 'masuk' : 'keluar',
+                    date: r.date,
+                    currency: lCurr,
+                    icon: 'fa-solid fa-rotate-left',
+                    badgeClass: l.type === 'piutang' ? 'badge-income' : 'badge-expense'
+                });
+            });
+        }
     });
 
-    // Sort by date descending, limit to 4
     unifiedHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
     const recent = unifiedHistory.slice(0, 4);
 
     if (recent.length === 0) {
-        listEl.innerHTML = '<li class="empty-list">Belum ada transaksi terdaftar.</li>';
+        listEl.innerHTML = `<li class="empty-list">Belum ada transaksi ${activeCurrency} terdaftar.</li>`;
         return;
     }
 
@@ -448,7 +432,7 @@ function renderRecentTransactions() {
                 </div>
             </div>
             <div class="item-right">
-                <p class="item-amount ${item.type}">${item.type === 'masuk' ? '+' : '-'}${formatRupiah(item.amount)}</p>
+                <p class="item-amount ${item.type}">${item.type === 'masuk' ? '+' : '-'}${formatCurrency(item.amount, item.currency)}</p>
             </div>
         `;
         listEl.appendChild(li);
@@ -459,8 +443,10 @@ function renderRecentLoans() {
     const listEl = document.getElementById('recent-loans');
     if (!listEl) return;
 
-    // Filter active loans
     const active = state.loans.filter(l => {
+        const lCurr = l.currency || 'IDR';
+        if (lCurr !== activeCurrency) return false;
+
         const interestRate = l.interestRate !== undefined ? l.interestRate : 20;
         const loanTotal = l.amount + (l.amount * (interestRate / 100));
         const totalRepaid = l.repayments.reduce((sum, r) => sum + r.amount, 0);
@@ -468,7 +454,7 @@ function renderRecentLoans() {
     }).slice(0, 4);
 
     if (active.length === 0) {
-        listEl.innerHTML = '<li class="empty-list">Belum ada pinjaman aktif.</li>';
+        listEl.innerHTML = `<li class="empty-list">Belum ada pinjaman ${activeCurrency} aktif.</li>`;
         return;
     }
 
@@ -478,7 +464,7 @@ function renderRecentLoans() {
         const loanTotal = l.amount + (l.amount * (interestRate / 100));
         const totalRepaid = l.repayments.reduce((sum, r) => sum + r.amount, 0);
         const remaining = loanTotal - totalRepaid;
-        const typeStr = l.type === 'piutang' ? 'Piutang (Pihak Berhutang)' : 'Hutang (Kamu Berhutang)';
+        const typeStr = l.type === 'piutang' ? 'Piutang' : 'Hutang';
         const amountClass = l.type === 'piutang' ? 'piutang-in' : 'hutang-in';
 
         const li = document.createElement('li');
@@ -494,7 +480,7 @@ function renderRecentLoans() {
                 </div>
             </div>
             <div class="item-right">
-                <p class="item-amount ${amountClass}">${formatRupiah(remaining)}</p>
+                <p class="item-amount ${amountClass}">${formatCurrency(remaining, activeCurrency)}</p>
                 <span class="item-status badge-pending">Aktif</span>
             </div>
         `;
@@ -508,14 +494,11 @@ function formatDateStr(dateStr) {
 }
 
 /* ==========================================
-   CHARTS RENDERING (CHART.JS)
+   CHARTS RENDERING
    ========================================== */
 function renderCharts() {
-    // 1. CASHFLOW CHART
     const ctxCashflow = document.getElementById('cashflowChart');
     if (ctxCashflow) {
-        // Group transactions & loans by date (last 7 days/weeks/months)
-        // For simplicity, let's group by month of the last 6 months
         const last6Months = [];
         for (let i = 5; i >= 0; i--) {
             const d = new Date();
@@ -528,34 +511,37 @@ function renderCharts() {
             });
         }
 
-        // Aggregate incomes & expenses
         state.transactions.forEach(t => {
-            const mKey = t.date.substring(0, 7); // "YYYY-MM"
-            const bucket = last6Months.find(m => m.monthKey === mKey);
-            if (bucket) {
-                if (t.type === 'masuk') bucket.income += t.amount;
-                else bucket.expense += t.amount;
+            const tCurr = t.currency || 'IDR';
+            if (tCurr === activeCurrency) {
+                const mKey = t.date.substring(0, 7);
+                const bucket = last6Months.find(m => m.monthKey === mKey);
+                if (bucket) {
+                    if (t.type === 'masuk') bucket.income += t.amount;
+                    else bucket.expense += t.amount;
+                }
             }
         });
 
         state.loans.forEach(l => {
-            // Initial disbursement
-            const mKeyInit = l.date.substring(0, 7);
-            const bucketInit = last6Months.find(m => m.monthKey === mKeyInit);
-            if (bucketInit) {
-                if (l.type === 'piutang') bucketInit.expense += l.amount;
-                else bucketInit.income += l.amount;
-            }
-
-            // Repayments
-            l.repayments.forEach(r => {
-                const mKeyRep = r.date.substring(0, 7);
-                const bucketRep = last6Months.find(m => m.monthKey === mKeyRep);
-                if (bucketRep) {
-                    if (l.type === 'piutang') bucketRep.income += r.amount;
-                    else bucketRep.expense += r.amount;
+            const lCurr = l.currency || 'IDR';
+            if (lCurr === activeCurrency) {
+                const mKeyInit = l.date.substring(0, 7);
+                const bucketInit = last6Months.find(m => m.monthKey === mKeyInit);
+                if (bucketInit) {
+                    if (l.type === 'piutang') bucketInit.expense += l.amount;
+                    else bucketInit.income += l.amount;
                 }
-            });
+
+                l.repayments.forEach(r => {
+                    const mKeyRep = r.date.substring(0, 7);
+                    const bucketRep = last6Months.find(m => m.monthKey === mKeyRep);
+                    if (bucketRep) {
+                        if (l.type === 'piutang') bucketRep.income += r.amount;
+                        else bucketRep.expense += r.amount;
+                    }
+                });
+            }
         });
 
         const labels = last6Months.map(m => m.label);
@@ -569,18 +555,18 @@ function renderCharts() {
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Total Kas Masuk',
+                        label: 'Total Kas Masuk (' + activeCurrency + ')',
                         data: incomeData,
                         borderColor: '#2ecc71',
-                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                        backgroundColor: 'rgba(46, 204, 113, 0.05)',
                         fill: true,
                         tension: 0.4
                     },
                     {
-                        label: 'Total Kas Keluar',
+                        label: 'Total Kas Keluar (' + activeCurrency + ')',
                         data: expenseData,
                         borderColor: '#e74c3c',
-                        backgroundColor: 'rgba(231, 76, 60, 0.15)',
+                        backgroundColor: 'rgba(231, 76, 60, 0.08)',
                         fill: true,
                         tension: 0.4
                     }
@@ -593,35 +579,35 @@ function renderCharts() {
                     legend: { labels: { color: '#eef7f2', font: { family: 'Outfit' } } }
                 },
                 scales: {
-                    x: { ticks: { color: '#a8beb2', font: { family: 'Outfit' } }, grid: { color: 'rgba(133,187,101,0.08)' } },
-                    y: { ticks: { color: '#a8beb2', font: { family: 'Outfit' } }, grid: { color: 'rgba(133,187,101,0.08)' } }
+                    x: { ticks: { color: '#a8beb2', font: { family: 'Outfit' } }, grid: { color: 'rgba(133,187,101,0.05)' } },
+                    y: { ticks: { color: '#a8beb2', font: { family: 'Outfit' } }, grid: { color: 'rgba(133,187,101,0.05)' } }
                 }
             }
         });
     }
 
-    // 2. CATEGORY CHART
     const ctxCategory = document.getElementById('categoryChart');
     if (ctxCategory) {
-        // Aggregate only expense (uang keluar) categories
         const catMap = {};
         state.transactions.forEach(t => {
-            if (t.type === 'keluar') {
+            const tCurr = t.currency || 'IDR';
+            if (tCurr === activeCurrency && t.type === 'keluar') {
                 catMap[t.category] = (catMap[t.category] || 0) + t.amount;
             }
         });
 
         state.loans.forEach(l => {
-            if (l.type === 'piutang') {
-                // Giving out money counts as a loan/outflow expense category
-                catMap['Pinjaman Keluar'] = (catMap['Pinjaman Keluar'] || 0) + l.amount;
-            }
-            l.repayments.forEach(r => {
-                if (l.type === 'hutang') {
-                    // Repaying our loan is money out
-                    catMap['Cicilan Pinjaman'] = (catMap['Cicilan Pinjaman'] || 0) + r.amount;
+            const lCurr = l.currency || 'IDR';
+            if (lCurr === activeCurrency) {
+                if (l.type === 'piutang') {
+                    catMap['Pinjaman Keluar'] = (catMap['Pinjaman Keluar'] || 0) + l.amount;
                 }
-            });
+                l.repayments.forEach(r => {
+                    if (l.type === 'hutang') {
+                        catMap['Cicilan Pinjaman'] = (catMap['Cicilan Pinjaman'] || 0) + r.amount;
+                    }
+                });
+            }
         });
 
         const labels = Object.keys(catMap);
@@ -630,13 +616,12 @@ function renderCharts() {
         if (categoryChart) categoryChart.destroy();
         
         if (labels.length === 0) {
-            // Empty state helper inside Canvas
             const emptyCtx = ctxCategory.getContext('2d');
             emptyCtx.clearRect(0, 0, ctxCategory.width, ctxCategory.height);
             emptyCtx.fillStyle = '#6e8579';
             emptyCtx.font = '14px Outfit';
             emptyCtx.textAlign = 'center';
-            emptyCtx.fillText('Tidak ada data transaksi', ctxCategory.width / 2, ctxCategory.height / 2);
+            emptyCtx.fillText(`Tidak ada data ${activeCurrency}`, ctxCategory.width / 2, ctxCategory.height / 2);
             return;
         }
 
@@ -676,22 +661,22 @@ function saveTransaction(e) {
     
     const idInput = document.getElementById('edit-transaction-id').value;
     const type = document.getElementById('tx-type').value;
+    const currency = document.getElementById('tx-currency').value;
     const category = document.getElementById('tx-category').value;
-    const amount = parseFloat(document.getElementById('tx-amount').value);
+    const amount = parseFormattedNumber(document.getElementById('tx-amount').value);
     const date = document.getElementById('tx-date').value;
     const note = document.getElementById('tx-note').value;
 
     if (idInput) {
-        // Edit Mode
         const idx = state.transactions.findIndex(t => t.id === idInput);
         if (idx !== -1) {
-            state.transactions[idx] = { id: idInput, type, category, amount, date, note };
+            state.transactions[idx] = { id: idInput, type, currency, category, amount, date, note };
         }
     } else {
-        // Add Mode
         const newTx = {
             id: `tx-${Date.now()}`,
             type,
+            currency,
             category,
             amount,
             date,
@@ -702,16 +687,15 @@ function saveTransaction(e) {
 
     saveDataToLocalStorage();
     closeModal('transactionModal');
-    updateDashboardUI();
+    changeDashboardCurrency(currency);
     
-    // If we are currently in transactions section, refresh the table
     if (document.getElementById('transactions-section').classList.contains('active')) {
         renderTransactionTable();
     }
 }
 
 function deleteTransaction(id) {
-    if (confirm('Apakah kamu yakin ingin menghapus transaksi ini?')) {
+    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
         state.transactions = state.transactions.filter(t => t.id !== id);
         saveDataToLocalStorage();
         updateDashboardUI();
@@ -725,9 +709,15 @@ function editTransaction(id) {
 
     document.getElementById('edit-transaction-id').value = tx.id;
     document.getElementById('tx-type').value = tx.type;
-    updateCategoryOptions(); // Repopulate categories options
+    document.getElementById('tx-currency').value = tx.currency || 'IDR';
+    updateCategoryOptions();
     document.getElementById('tx-category').value = tx.category;
-    document.getElementById('tx-amount').value = tx.amount;
+    
+    // Set and format the amount to have dots during edit
+    const amountInput = document.getElementById('tx-amount');
+    amountInput.value = tx.amount;
+    formatInputCurrency(amountInput);
+    
     document.getElementById('tx-date').value = tx.date;
     document.getElementById('tx-note').value = tx.note;
 
@@ -749,13 +739,11 @@ function renderTransactionTable() {
         return matchesQuery && matchesType && matchesCat;
     });
 
-    // Sort by date descending
     filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-
     tbody.innerHTML = '';
     
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="empty-list" style="text-align:center;">Tidak ada transaksi ditemukan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-list" style="text-align:center;">Tidak ada transaksi ditemukan.</td></tr>`;
         return;
     }
 
@@ -763,13 +751,15 @@ function renderTransactionTable() {
         const tr = document.createElement('tr');
         const badgeClass = t.type === 'masuk' ? 'badge-income' : 'badge-expense';
         const typeStr = t.type === 'masuk' ? 'Masuk' : 'Keluar';
+        const tCurr = t.currency || 'IDR';
 
         tr.innerHTML = `
             <td>${formatDateStr(t.date)}</td>
+            <td><strong>${tCurr}</strong></td>
             <td><strong>${t.category}</strong></td>
             <td>${t.note}</td>
             <td><span class="badge ${badgeClass}">${typeStr}</span></td>
-            <td><strong>${formatRupiah(t.amount)}</strong></td>
+            <td><strong>${formatCurrency(t.amount, tCurr)}</strong></td>
             <td>
                 <button class="btn btn-secondary btn-sm" onclick="editTransaction('${t.id}')">
                     <i class="fa-solid fa-pen-to-square"></i>
@@ -795,7 +785,8 @@ function saveLoan(e) {
     
     const type = document.getElementById('loan-type').value;
     const name = document.getElementById('loan-name').value;
-    const amount = parseFloat(document.getElementById('loan-amount').value);
+    const currency = document.getElementById('loan-currency').value;
+    const amount = parseFormattedNumber(document.getElementById('loan-amount').value);
     const interestRate = parseFloat(document.getElementById('loan-interest').value);
     const date = document.getElementById('loan-date').value;
     const dueDate = document.getElementById('loan-due-date').value;
@@ -805,6 +796,7 @@ function saveLoan(e) {
         id: `loan-${Date.now()}`,
         type,
         name,
+        currency,
         amount,
         interestRate,
         date,
@@ -816,7 +808,7 @@ function saveLoan(e) {
     state.loans.push(newLoan);
     saveDataToLocalStorage();
     closeModal('loanModal');
-    updateDashboardUI();
+    changeDashboardCurrency(currency);
     
     if (document.getElementById('loans-section').classList.contains('active')) {
         renderLoanTable();
@@ -827,16 +819,20 @@ function openRepayModal(loanId) {
     const loan = state.loans.find(l => l.id === loanId);
     if (!loan) return;
 
+    const lCurr = loan.currency || 'IDR';
     const interestRate = loan.interestRate !== undefined ? loan.interestRate : 20;
     const loanTotal = loan.amount + (loan.amount * (interestRate / 100));
     const totalRepaid = loan.repayments.reduce((sum, r) => sum + r.amount, 0);
     const remaining = loanTotal - totalRepaid;
 
     document.getElementById('repay-loan-id').value = loanId;
-    document.getElementById('repay-info-name').textContent = loan.name;
-    document.getElementById('repay-info-remaining').textContent = formatRupiah(remaining);
-    document.getElementById('repay-amount').max = remaining;
-    document.getElementById('repay-amount').value = remaining; // Default full payoff
+    document.getElementById('repay-info-name').textContent = loan.name + ` (${lCurr})`;
+    document.getElementById('repay-info-remaining').textContent = formatCurrency(remaining, lCurr);
+    
+    // Set and format the repayment default amount input
+    const repayAmountInput = document.getElementById('repay-amount');
+    repayAmountInput.value = remaining;
+    formatInputCurrency(repayAmountInput);
 
     setupDefaultDates();
     openModal('repayModal');
@@ -846,7 +842,7 @@ function saveRepayment(e) {
     e.preventDefault();
     
     const loanId = document.getElementById('repay-loan-id').value;
-    const amount = parseFloat(document.getElementById('repay-amount').value);
+    const amount = parseFormattedNumber(document.getElementById('repay-amount').value);
     const date = document.getElementById('repay-date').value;
 
     const loanIdx = state.loans.findIndex(l => l.id === loanId);
@@ -861,7 +857,9 @@ function saveRepayment(e) {
     state.loans[loanIdx].repayments.push(newRepayment);
     saveDataToLocalStorage();
     closeModal('repayModal');
-    updateDashboardUI();
+    
+    const lCurr = state.loans[loanIdx].currency || 'IDR';
+    changeDashboardCurrency(lCurr);
 
     if (document.getElementById('loans-section').classList.contains('active')) {
         renderLoanTable();
@@ -869,7 +867,7 @@ function saveRepayment(e) {
 }
 
 function deleteLoan(id) {
-    if (confirm('Hapus pinjaman ini? Semua data pengembalian juga akan terhapus.')) {
+    if (confirm('Hapus data pinjaman ini? Semua riwayat pengembalian juga akan terhapus.')) {
         state.loans = state.loans.filter(l => l.id !== id);
         saveDataToLocalStorage();
         updateDashboardUI();
@@ -902,13 +900,13 @@ function renderLoanTable() {
     });
 
     tbody.innerHTML = '';
-    
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="empty-list" style="text-align:center;">Tidak ada data pinjaman ditemukan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="13" class="empty-list" style="text-align:center;">Tidak ada data pinjaman ditemukan.</td></tr>`;
         return;
     }
 
     filtered.forEach(l => {
+        const lCurr = l.currency || 'IDR';
         const interestRate = l.interestRate !== undefined ? l.interestRate : 20;
         const interestAmount = l.amount * (interestRate / 100);
         const loanTotal = l.amount + interestAmount;
@@ -919,18 +917,19 @@ function renderLoanTable() {
         const tr = document.createElement('tr');
         const statusBadge = isLunas 
             ? `<span class="badge badge-success">Lunas</span>` 
-            : `<span class="badge badge-pending">Belum Lunas</span>`;
-        const typeStr = l.type === 'piutang' ? 'Piutang (Pihak Berhutang)' : 'Hutang (Kamu Berhutang)';
+            : `<span class="badge badge-pending">Aktif</span>`;
+        const typeStr = l.type === 'piutang' ? 'Piutang' : 'Hutang';
 
         tr.innerHTML = `
             <td>${formatDateStr(l.date)}</td>
             <td><strong>${l.name}</strong><br><small style="color:var(--text-muted);">${l.note}</small></td>
+            <td><strong>${lCurr}</strong></td>
             <td>${typeStr}</td>
-            <td>${formatRupiah(l.amount)}</td>
-            <td style="color: var(--accent-gold);">${interestRate}% (${formatRupiah(interestAmount)})</td>
-            <td style="font-weight: 600;">${formatRupiah(loanTotal)}</td>
-            <td style="color:var(--color-success); font-weight: 500;">${formatRupiah(totalRepaid)}</td>
-            <td style="font-weight: 700; color: ${isLunas ? 'var(--color-success)' : 'var(--accent-red)'};">${formatRupiah(remaining)}</td>
+            <td>${formatCurrency(l.amount, lCurr)}</td>
+            <td style="color: var(--accent-gold); font-size:0.85rem;">${interestRate}% (${formatCurrency(interestAmount, lCurr)})</td>
+            <td style="font-weight: 600;">${formatCurrency(loanTotal, lCurr)}</td>
+            <td style="color:var(--color-success); font-weight: 500;">${formatCurrency(totalRepaid, lCurr)}</td>
+            <td style="font-weight: 700; color: ${isLunas ? 'var(--color-success)' : 'var(--color-danger)'};">${formatCurrency(remaining, lCurr)}</td>
             <td>${l.dueDate ? formatDateStr(l.dueDate) : '-'}</td>
             <td>${statusBadge}</td>
             <td>
@@ -942,8 +941,4 @@ function renderLoanTable() {
         `;
         tbody.appendChild(tr);
     });
-}
-
-function filterLoans() {
-    renderLoanTable();
 }

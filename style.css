@@ -988,7 +988,15 @@ body::after {
         font-size: 0.85rem;
     }
 
-    .welcome-text h1 {
-        font-size: 1.5rem;
-    }
+/* Active currency selection tabs styling */
+.active-currency {
+    background-color: var(--dollar-green) !important;
+    color: #0b120f !important;
+    border-color: var(--dollar-green) !important;
+    font-weight: 700 !important;
 }
+
+.currency-tabs-container button {
+    transition: var(--transition-smooth);
+}
+
