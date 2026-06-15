@@ -576,11 +576,11 @@ function renderCharts() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { labels: { color: '#eef7f2', font: { family: 'Outfit' } } }
+                    legend: { labels: { color: '#f8f9fa', font: { family: 'Outfit' } } }
                 },
                 scales: {
-                    x: { ticks: { color: '#a8beb2', font: { family: 'Outfit' } }, grid: { color: 'rgba(133,187,101,0.05)' } },
-                    y: { ticks: { color: '#a8beb2', font: { family: 'Outfit' } }, grid: { color: 'rgba(133,187,101,0.05)' } }
+                    x: { ticks: { color: '#a5b5c1', font: { family: 'Outfit' } }, grid: { color: 'rgba(0,180,216,0.08)' } },
+                    y: { ticks: { color: '#a5b5c1', font: { family: 'Outfit' } }, grid: { color: 'rgba(0,180,216,0.08)' } }
                 }
             }
         });
@@ -618,7 +618,7 @@ function renderCharts() {
         if (labels.length === 0) {
             const emptyCtx = ctxCategory.getContext('2d');
             emptyCtx.clearRect(0, 0, ctxCategory.width, ctxCategory.height);
-            emptyCtx.fillStyle = '#6e8579';
+            emptyCtx.fillStyle = '#627a8d';
             emptyCtx.font = '14px Outfit';
             emptyCtx.textAlign = 'center';
             emptyCtx.fillText(`Tidak ada data ${activeCurrency}`, ctxCategory.width / 2, ctxCategory.height / 2);
@@ -632,8 +632,8 @@ function renderCharts() {
                 datasets: [{
                     data: data,
                     backgroundColor: [
-                        '#85bb65', '#2ecc71', '#d4af37', '#e74c3c', 
-                        '#3498db', '#f1c40f', '#9b59b6', '#1abc9c'
+                        '#00b4d8', '#2ecc71', '#f1c40f', '#e74c3c', 
+                        '#3498db', '#9b59b6', '#1abc9c', '#d4af37'
                     ],
                     borderWidth: 1.5,
                     borderColor: 'var(--sidebar-bg)'
@@ -645,7 +645,7 @@ function renderCharts() {
                 plugins: {
                     legend: { 
                         position: 'right',
-                        labels: { color: '#eef7f2', font: { family: 'Outfit', size: 11 } } 
+                        labels: { color: '#f8f9fa', font: { family: 'Outfit', size: 11 } } 
                     }
                 }
             }
