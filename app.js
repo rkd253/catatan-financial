@@ -17,8 +17,8 @@ let cashflowChart = null;
 let categoryChart = null;
 
 // Credentials Configuration
-const OWNER_USERNAME = "brobilly";
-const OWNER_PASSWORD = "sempakbasah";
+const OWNER_USERNAME = "pakdol";
+const OWNER_PASSWORD = "asd123";
 
 /* ==========================================
    APP INIT & EVENT LISTENERS
